@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+import mpxl
+
+s = mpxl.ExcelSelection()
+s.getSelection()
+s.extractParams()
+s.makePlot()
+s.insertPlot()

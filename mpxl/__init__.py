@@ -4,6 +4,8 @@ import kaplot
 from appscript import app,k
 from tempfile import NamedTemporaryFile
 
+__version__ = '0.1'
+
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
 _LAYER_SETTINGS = []
@@ -133,9 +135,7 @@ class ExcelSelection:
 		yCol = None # Ditto for y
 		yErr = None # ditto for y
 		skip = 0 # Number of columns to skip at start of loop. This is used if finding information (errors) on the next column
-		print len(schema)
 		for c,s in enumerate(schema):
-			print c
 			# Skip needed columns
 			if skip > 0:
 				skip -= 1
