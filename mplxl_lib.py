@@ -1,15 +1,48 @@
 # Library of helper functions for matplotlib excel interface
-from string import lower
+from string import lower,replace
+import kaplot
+from appscript import app,k
+from tempfile import NamedTemporaryFile
+
+_LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
+_LAYER_SETTINGS = []
+_LAYER_SETTINGS.append({'location' : 'upper left'})
+_LAYER_SETTINGS.append({'location' : 'upper right'})
+_LAYER_SETTINGS.append({'location' : 'lower left'})
+_LAYER_SETTINGS.append({'location' : 'lower right'})
+_LAYER_SETTINGS.append({'twin' : 'x'})
+_LAYER_SETTINGS.append({'twin' : 'y'})
+
+"""app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)"""
 
 class ExcelSelection:
-	def getSelection():
+	def __init__(self):
+		self._datasets = []
+		self._layers = set(['main']) # it's a set so there are no duplicates
+		self.k = None # kaplot object
+
+	def getSelection(self):
 		"""
 		Gets the active selection from excel using appscript module.
-		Returns list of lists.
+		Returns list of lists, and saves as self.selectionList
 		"""
-		return
+		self.selectionList = app(u'Microsoft Excel').selection.value.get()
+		return self.selectionList
 
-	def extractParams(selectionList):
+	def insertPlot(self):
+		"""
+		Inserts plot into new worksheet.
+		"""
+		if self.isTitle:
+			name = self.title
+		else:
+			name = 'MPXL'
+		newSheet = app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)
+		osxPath = 'Mavericks:' + self.ntf.name.replace('/',':')
+		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
+		self.ntf.close()
+
+	def extractParams(self):
 		"""
 		Extracts the header information from the selection. Going down the rows step by step, we look for the following information.
 		If it's found, advance to the next row and go to the next step, otherwise just go to the next step for the same row.
@@ -34,11 +67,11 @@ class ExcelSelection:
 			would produce 2 curves, both with the same x data, and the second with error bars on y.
 			Optionally, this can be followed by a semicolon (;) and then followed by one of the following layer names:
 				insetTL, insetTR, insetBL, insetBR (for inset plot in one of 4 locations)
-				twinx,twiny,twinxy (for plots on a second pair of x or y or both axes, respectively.)
-				(For insets, all of the associated columns must have this after them.)
+				twinx,twiny (for plots on a second pair of y or x axes, respectively.)
+			If left out, we assume the data is on the "main" layer
 			For example, the following is a valid schema:
 				1 | 2 | 3          | 4          | 5       | 6       | 7 | 8       | 9
-				X | Y | X;inset:TL | Y;inset:TL | X;twinx | Y;twinx | X | Y;twiny | Y
+				X | Y | X;insetTL  | Y;insetTL  | X;twinx | Y;twinx | X | Y;twiny | Y
 			which will produce a plot like:
 			
 			               5,6
@@ -59,10 +92,11 @@ class ExcelSelection:
 		Data:
 			Data is collected in the corresponding MPLDataSet object.
 		"""
+		selectionList = self.selectionList
 		currentRow = 0
 		# Title
 		if lower(selectionList[currentRow][0]) == 'title':
-			self.title = list(selectionList[currentRow][1])
+			self.title = selectionList[currentRow][1]
 			self.isTitle = True
 			currentRow += 1
 		else:
@@ -85,28 +119,96 @@ class ExcelSelection:
 
 		# Schema
 		self.schema = selectionList[currentRow]
+		self.dataStartRow = currentRow + 1
+		self.processSchema()
+
+	def processSchema(self):
+		"""
+		Parses through the schema list to determine the different layers present and datasets to use
+		"""
+		schema = self.schema
+		xCol = None # The column representing the current set of x values. Each time an "X" is encountered this will update.
+		xErr = None # The column representing the current x error. None if there's no error.
+		yCol = None # Ditto for y
+		yErr = None # ditto for y
+		skip = 0 # Number of columns to skip at start of loop. This is used if finding information (errors) on the next column
+		print len(schema)
+		for c,s in enumerate(schema):
+			print c
+			# Skip needed columns
+			if skip > 0:
+				skip -= 1
+				continue
+
+			# Check for new X
+			if lower(s).startswith('x') and not lower(s).startswith('xerr'):
+				xCol = c
+				# Is next column errors?
+				if len(schema) > c + 1 and lower(schema[c+1]).startswith('xerr'):
+					xErr = c + 1
+					skip += 1
+				else:
+					xErr = None
+
+			# If not X, should be a Y column
+			if lower(s).startswith('y') and not lower(s).startswith('yerr'):
+				yCol = c
+				# Is next column errors?
+				if len(schema) > c + 1 and lower(schema[c+1]).startswith('yerr'):
+					yErr = c + 1
+					skip += 1
+				else:
+					yErr = None
+				# what layer should it be in?
+				if len(s) > 1 and s[1] == ';':
+					# there's more!
+					layer = s[2:]
+				else:
+					layer = 'main'
+				# This is a complete dataset
+				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer)))
+				self._layers.add(lower(layer))
+
+	def makePlot(self):
+		k = kaplot.kaplot()
+		# Add all the layers (except 'main')
+		self._layers.remove('main')
+		for lname in self._layers:
+			layer = _LAYERS.index(lname) # this will error out if wrong layer name was input
+			k.add_layer(lname,**(_LAYER_SETTINGS[layer]))
+		# Add all the data
+		for dataset in self._datasets:
+			k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer)
+		# And the rest of the stuff
+		if self.isTitle:
+			k.set_title(self.title)
+		if self.isLegend:
+			k.set_legend(True)
+		k.makePlot()
+		# k.showMe()
+		self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
+		k.saveMe(self.ntf.name,height=6,width=8,dpi=80)
+
+
 
 class MPLDataSet:
 	"""
 	This contains a single dataset (X,Y,Xerr,Yerr) that is passed to kaplot.add_data
 	"""
-	def __init__(selectionList,xCol,yCol,xErr,yErr,layer):
+	def __init__(self,selection,xCol,xErr,yCol,yErr,layer):
 		"""
 		Extracts data from selectionList, and adds to MPLLayer
 		"""
-
-class MPLLayer:
-	"""
-	This contains the collection of MPLPlots that form a single MPL layer. There may be more than one MPLPlotGroup in the final plot.
-	For example, if the schema is X,Y,Yerr,Y,X,Y, there are two plot groups: one has the first X, two Y plots, one with error bars.
-	The second group has the second X and Y pair.
-
-	Essentially, while scanning the schema from left to right, a new plot group is started under the following conditions:
-	- X is encountered
-	- 
-	"""
-	self.plotType = 'line'
-	self.xData = []
-	self.xErr = []
-	self.yData = [[]]
-	self.yErr = [[]]
+		dataList = selection.selectionList[selection.dataStartRow:]
+		dataList = map(list, zip(*dataList))
+		self.xData = dataList[xCol]
+		self.yData = dataList[yCol]
+		if xErr:
+			self.xErr = dataList[xErr]
+		else:
+			self.xErr = None
+		if yErr:
+			self.yErr = dataList[yErr]
+		else:
+			self.yErr = None
+		self.layer = layer
