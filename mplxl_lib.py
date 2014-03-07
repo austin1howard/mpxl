@@ -5,6 +5,7 @@ from appscript import app,k
 from tempfile import NamedTemporaryFile
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
+
 _LAYER_SETTINGS = []
 _LAYER_SETTINGS.append({'location' : 'upper left'})
 _LAYER_SETTINGS.append({'location' : 'upper right'})
@@ -13,12 +14,16 @@ _LAYER_SETTINGS.append({'location' : 'lower right'})
 _LAYER_SETTINGS.append({'twin' : 'x'})
 _LAYER_SETTINGS.append({'twin' : 'y'})
 
+_LEGEND_LOCATIONS = ['upper right', 'upper left', 'lower left', 'lower right']
+
 """app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)"""
 
 class ExcelSelection:
 	def __init__(self):
 		self._datasets = []
 		self._layers = set(['main']) # it's a set so there are no duplicates
+		self._layer_labels = {}
+		self._layer_units = {}
 		self.k = None # kaplot object
 
 	def getSelection(self):
@@ -33,10 +38,6 @@ class ExcelSelection:
 		"""
 		Inserts plot into new worksheet.
 		"""
-		if self.isTitle:
-			name = self.title
-		else:
-			name = 'MPXL'
 		newSheet = app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)
 		osxPath = 'Mavericks:' + self.ntf.name.replace('/',':')
 		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
@@ -168,28 +169,37 @@ class ExcelSelection:
 				# This is a complete dataset
 				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer)))
 				self._layers.add(lower(layer))
+				self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
+				self._layer_units[lower(layer)] = (self.units[xCol],self.units[yCol])
+
 
 	def makePlot(self):
 		k = kaplot.kaplot()
 		# Add all the layers (except 'main')
-		self._layers.remove('main')
+		# self._layers.remove('main')
 		for lname in self._layers:
+			if lname == 'main':
+				continue # don't need to explicitly add 'main'
 			layer = _LAYERS.index(lname) # this will error out if wrong layer name was input
 			k.add_layer(lname,**(_LAYER_SETTINGS[layer]))
 		# Add all the data
 		for dataset in self._datasets:
-			k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer)
+			if self.isLegend:
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label)
+			else:
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer)
 		# And the rest of the stuff
 		if self.isTitle:
 			k.set_title(self.title)
-		if self.isLegend:
-			k.set_legend(True)
+		for i,lname in enumerate(self._layers):
+			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname)
+			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname)
+			if self.isLegend:
+				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		k.makePlot()
 		# k.showMe()
 		self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
 		k.saveMe(self.ntf.name,height=6,width=8,dpi=80)
-
-
 
 class MPLDataSet:
 	"""
@@ -212,3 +222,7 @@ class MPLDataSet:
 		else:
 			self.yErr = None
 		self.layer = layer
+		if selection.isLegend:
+			self.label = selection.legend[yCol]
+		else:
+			self.label = None
