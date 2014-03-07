@@ -69,12 +69,16 @@ class ExcelSelection:
 			to specify the type of data in that column. Columns pair in the same way as Origin. For example, X | Y | Y | Yerr
 			would produce 2 curves, both with the same x data, and the second with error bars on y.
 			Optionally, this can be followed by a semicolon (;) and then followed by one of the following layer names:
+
 				insetTL, insetTR, insetBL, insetBR (for inset plot in one of 4 locations)
 				twinx,twiny (for plots on a second pair of y or x axes, respectively.)
+
 			If left out, we assume the data is on the "main" layer
 			For example, the following is a valid schema:
+
 				1 | 2 | 3          | 4          | 5       | 6       | 7 | 8       | 9
 				X | Y | X;insetTL  | Y;insetTL  | X;twinx | Y;twinx | X | Y;twiny | Y
+
 			which will produce a plot like:
 			
 			               5,6
@@ -90,6 +94,7 @@ class ExcelSelection:
 			               1,2
 			               7,8
 			               7,9
+			
 			The numbers show the xy data pairing, and which axes that pairing will be plotted against.
 		
 		Data:
@@ -174,6 +179,9 @@ class ExcelSelection:
 
 
 	def makePlot(self):
+		"""
+		Makes plot in matplotlib using kaplot extension, and saves to temporary file.
+		"""
 		k = kaplot.kaplot()
 		# Add all the layers (except 'main')
 		# self._layers.remove('main')
