@@ -1,8 +1,9 @@
 # Library of helper functions for matplotlib excel interface
-from string import lower,replace,split
+from string import lower,replace,split,strip
 import kaplot
 from appscript import app,k
 from tempfile import NamedTemporaryFile
+from subprocess import PIPE,Popen
 
 __version__ = '0.1'
 
@@ -42,7 +43,10 @@ class ExcelSelection:
 		Inserts plot into new worksheet.
 		"""
 		newSheet = app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)
-		osxPath = 'Mavericks:' + self.ntf.name.replace('/',':')
+		# get HFS style path
+		applescriptCommand = 'return POSIX file "%s" as string' % self.ntf.name
+		p = Popen(['osascript','-e',applescriptCommand],stdout=PIPE)
+		osxPath = p.communicate()[0].strip('\n')
 		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
 		self.ntf.close()
 
