@@ -1,5 +1,5 @@
 # Library of helper functions for matplotlib excel interface
-from string import lower,replace
+from string import lower,replace,split
 import kaplot
 from appscript import app,k
 from tempfile import NamedTemporaryFile
@@ -26,6 +26,7 @@ class ExcelSelection:
 		self._layers = set(['main']) # it's a set so there are no duplicates
 		self._layer_labels = {}
 		self._layer_units = {}
+		self._layer_colors = {}
 		self.k = None # kaplot object
 
 	def getSelection(self):
@@ -95,6 +96,8 @@ class ExcelSelection:
 			               7,9
 			
 		The numbers show the xy data pairing, and which axes that pairing will be plotted against.
+		The layer name may be followed by another semicolon (;) and a color name, to plot the data and the axes labels
+		in that color.
 		
 		Data:
 			Data is collected in the corresponding MPLDataSet object.
@@ -116,7 +119,7 @@ class ExcelSelection:
 		currentRow += 1
 
 		# Legend, if it exists
-		if lower(selectionList[currentRow][0]) != 'x':
+		if lower(selectionList[currentRow][0])[0] != 'x':
 			# There is a legend row
 			self.legend = selectionList[currentRow]
 			self.isLegend = True
@@ -168,13 +171,20 @@ class ExcelSelection:
 				if len(s) > 1 and s[1] == ';':
 					# there's more!
 					layer = s[2:]
+					# Check if color was specified
+					if ';' in layer:
+						layer,color = split(layer,';')
+					else:
+						color = None
 				else:
 					layer = 'main'
+					color = None
 				# This is a complete dataset
-				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer)))
+				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer),color))
 				self._layers.add(lower(layer))
 				self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
 				self._layer_units[lower(layer)] = (self.units[xCol],self.units[yCol])
+				self._layer_colors[lower(layer)] = color
 
 
 	def makePlot(self):
@@ -191,16 +201,22 @@ class ExcelSelection:
 			k.add_layer(lname,**(_LAYER_SETTINGS[layer]))
 		# Add all the data
 		for dataset in self._datasets:
+			kwargs = {}
+			if dataset.color:
+				kwargs['color'] = dataset.color
 			if self.isLegend:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label)
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label,**kwargs)
 			else:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer)
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
 		# And the rest of the stuff
 		if self.isTitle:
 			k.set_title(self.title)
 		for i,lname in enumerate(self._layers):
-			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname)
-			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname)
+			kwargs = {}
+			if self._layer_colors[lname]:
+				kwargs['color'] = self._layer_colors[lname]
+			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname, **kwargs)
+			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname, **kwargs)
 			if self.isLegend:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		k.makePlot()
@@ -212,7 +228,7 @@ class MPLDataSet:
 	"""
 	This contains a single dataset (X,Y,Xerr,Yerr) that is passed to kaplot.add_data
 	"""
-	def __init__(self,selection,xCol,xErr,yCol,yErr,layer):
+	def __init__(self,selection,xCol,xErr,yCol,yErr,layer,color):
 		"""
 		Extracts data from selectionList, and adds to MPLLayer
 		"""
@@ -220,6 +236,10 @@ class MPLDataSet:
 		dataList = map(list, zip(*dataList))
 		self.xData = dataList[xCol]
 		self.yData = dataList[yCol]
+		# remove blank entries at end
+		while self.xData[-1] == '':
+			self.xData.pop()
+			self.yData.pop()
 		if xErr:
 			self.xErr = dataList[xErr]
 		else:
@@ -229,6 +249,7 @@ class MPLDataSet:
 		else:
 			self.yErr = None
 		self.layer = layer
+		self.color = color
 		if selection.isLegend:
 			self.label = selection.legend[yCol]
 		else:
