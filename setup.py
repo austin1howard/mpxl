@@ -9,7 +9,7 @@ setup(
 	version=__version__,
 	packages=find_packages(),
 	scripts = ['scripts/mpxl'],
-	install_requires = ['matplotlib','appscript','kaplot'],
+	install_requires = ['matplotlib','appscript','kaplot >= 0.9a'],
 	author = 'Austin Howard',
 	author_email = 'ahoward@utdallas.edu',
 	url = 'http://github.com/austin1howard/mpxl',
