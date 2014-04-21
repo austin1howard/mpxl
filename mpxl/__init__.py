@@ -103,8 +103,7 @@ class ExcelSelection:
 			               7,9
 			
 		The numbers show the xy data pairing, and which axes that pairing will be plotted against.
-		The layer name may be followed by another semicolon (;) and a color name, to plot the data and the axes labels
-		in that color.
+		The layer name may be followed by another semicolon (;) and a semicolon separated list of kwargs: e.g., X;main;lw=10;marker=o
 		
 		Data:
 			Data is collected in the corresponding MPLDataSet object.
@@ -187,22 +186,30 @@ class ExcelSelection:
 					yErr = None
 				# what layer should it be in?
 				if len(s) > 1 and s[1] == ';':
-					# there's more!
-					layer = s[2:]
-					# Check if color was specified
-					if ';' in layer:
-						layer,color = split(layer,';')
+					layerInfo = split(s[2:],';',1)
+					layer = layerInfo[0]
+					if len(layerInfo) > 1:
+						# get the kwargs
+						kwargsString = layerInfo[1]
+						kwargs = {}
+						for kwarg in split(kwargsString,';'):
+							key,value = kwarg.split('=')
+							kwargs[key] = value
 					else:
-						color = None
+						kwargs = {}
 				else:
 					layer = 'main'
-					color = None
+					kwargs = {}
 				# This is a complete dataset
-				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer),color))
+				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer),kwargs))
 				self._layers.add(lower(layer))
 				self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
 				self._layer_units[lower(layer)] = (self.units[xCol],self.units[yCol])
-				self._layer_colors[lower(layer)] = color
+				# see if color specified:
+				if 'color' in kwargs.keys():
+					self._layer_colors[lower(layer)] = kwargs['color']
+				else:
+					self._layer_colors[lower(layer)] = None
 
 
 	def makePlot(self):
@@ -219,11 +226,9 @@ class ExcelSelection:
 			k.add_layer(lname,**(_LAYER_SETTINGS[layer]))
 		# Add all the data
 		for dataset in self._datasets:
-			kwargs = {}
-			if dataset.color:
-				kwargs['color'] = dataset.color
+			kwargs = dataset.kwargs
 			if self.isLegend:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label,**kwargs)
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label, **kwargs)
 			else:
 				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
 		# And the rest of the stuff
@@ -231,7 +236,7 @@ class ExcelSelection:
 			k.set_title(self.title)
 		for i,lname in enumerate(self._layers):
 			kwargs = {}
-			if self._layer_colors[lname]:
+			if lname != 'main' and self._layer_colors[lname]:
 				kwargs['color'] = self._layer_colors[lname]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname, **kwargs)
@@ -246,7 +251,7 @@ class MPLDataSet:
 	"""
 	This contains a single dataset (X,Y,Xerr,Yerr) that is passed to kaplot.add_data
 	"""
-	def __init__(self,selection,xCol,xErr,yCol,yErr,layer,color):
+	def __init__(self,selection,xCol,xErr,yCol,yErr,layer,kwargs):
 		"""
 		Extracts data from selectionList, and adds to MPLLayer
 		"""
@@ -267,7 +272,7 @@ class MPLDataSet:
 		else:
 			self.yErr = None
 		self.layer = layer
-		self.color = color
+		self.kwargs = kwargs
 		if selection.isLegend:
 			self.label = selection.legend[yCol]
 		else:
