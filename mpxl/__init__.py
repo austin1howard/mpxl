@@ -1,11 +1,12 @@
 # Library of helper functions for matplotlib excel interface
-from string import lower,replace,split,strip
+from string import lower,replace,split,strip,split
 import kaplot
+import kaplot.defaults as kd
 from appscript import app,k
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 
-__version__ = '0.2'
+__version__ = '0.2a'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -57,18 +58,20 @@ class ExcelSelection:
 
 		1) Title (If A1 is the word title, B1 is the title of the plot. Otherwise there's no title, and this row is thought of as row 2.)
 
-		2) TODO: Plot Style (If A2 is the word style, B2 is one of: line, scatter, hist, etc. If not specified assume line plot,
+		2) Settings (If A2 is the work settings, B2 is a comma separated list of words which are settings in kaplot.defaults)
+
+		3) TODO: Plot Style (If A2 is the word style, B2 is one of: line, scatter, hist, etc. If not specified assume line plot,
 			and treat this row as row 3.)
 
-		3) Label (required)
+		4) Label (required)
 
-		4) Units (required)
+		5) Units (required)
 
-		5) Legend entries:
+		6) Legend entries:
 			If row starts with a single "X", assume it is for the schema and skip the legend. Otherwise the items here will be put
 			into a legend should there be more than one Y per X.
 
-		6) Schema:
+		7) Schema:
 		Each cell contains one of the following:
 			X, Y, Xerr, Yerr
 		to specify the type of data in that column. Columns pair in the same way as Origin. For example, X | Y | Y | Yerr
@@ -115,6 +118,17 @@ class ExcelSelection:
 			currentRow += 1
 		else:
 			self.isTitle = False
+
+		# Settings
+		if lower(selectionList[currentRow][0]) == 'settings':
+			self.settings = []
+			for setting in split(selectionList[currentRow][1],','):
+				# try to import and use
+				if setting in kd.__dict__.keys():
+					self.settings.append(getattr(kd,setting))
+			currentRow += 1
+		else:
+			self.settings = None
 
 		# Label and Units
 		self.labels = selectionList[currentRow]
@@ -195,7 +209,7 @@ class ExcelSelection:
 		"""
 		Makes plot in matplotlib using kaplot extension, and saves to temporary file.
 		"""
-		k = kaplot.kaplot()
+		k = kaplot.kaplot(settings=self.settings)
 		# Add all the layers (except 'main')
 		# self._layers.remove('main')
 		for lname in self._layers:
@@ -226,7 +240,7 @@ class ExcelSelection:
 		k.makePlot()
 		# k.showMe()
 		self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
-		k.saveMe(self.ntf.name,height=6,width=8,dpi=80)
+		k.saveMe(self.ntf.name,dpi=80)
 
 class MPLDataSet:
 	"""
