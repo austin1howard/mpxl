@@ -6,7 +6,7 @@ from appscript import app,k
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 
-__version__ = '0.3'
+__version__ = '0.3a'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -19,6 +19,13 @@ _LAYER_SETTINGS.append({'twin' : 'x'})
 _LAYER_SETTINGS.append({'twin' : 'y'})
 
 _LEGEND_LOCATIONS = ['upper right', 'upper left', 'lower left', 'lower right']
+
+def _is_float(value):
+	try:
+		float(value)
+		return True
+	except:
+		return False
 
 """app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)"""
 
@@ -50,6 +57,53 @@ class ExcelSelection:
 		osxPath = p.communicate()[0].strip('\n')
 		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
 		self.ntf.close()
+
+	def determineRows(self):
+		"""
+		Determines the row layout of the spreadsheet
+		Possible options are:
+		- data only
+		- label, data
+		- label, unit, data
+		- label, unit, legend label, data
+		First line of data can optionally be a schema specifying the X,Y,Xerr,or Yerr columns,
+		optionally with semicolon specifying the plotting layer to use, optionally with another semicolon
+		separating kwargs to be passed to `add_plotdata`. If schema is not specified, assumes XYXYXY....
+
+		All of this may optionally be proceeded with rows specifying plot options. Each row takes the form:
+		`param`, `value` (multiple columns if needed), `kwargs` (multiple columns if needed). If param is "settings,"
+		then specify either a semicolon separated list of "settings" in kaplot.defaults or separate them across columns.
+		Otherwise, param must be a `set_` function in kaplot. (i.e., `set_title`) which will be run with the supplied arguments.)
+		"""
+		rowSpec = []
+		currentRow = 0
+		while True:
+			col1 = self.selectionList[currentRow][0]
+			# first check for params
+			if col1 == 'settings':
+				rowSpec.append('settings')
+			elif col1.startswith('set_'):
+				rowSpec.append('set_')
+			elif _is_float(col1):
+				# double check
+				if _is_float(self.selectionList[currentRow+1][0]):
+					# two rows of numbers in a row, probably onto data
+					rowSpec.append('data')
+					break # once we hit data, we're done
+			elif lower(col1) in ['x','y','xerr','yerr']:
+				rowSpec.append('schema')
+			else:
+				# if nothing above, must be in the label section.
+				if rowSpec[-1] == 'label':
+					rowSpec.append('units')
+				elif rowSpec[-1] == 'units':
+					rowSpec.append('legend')
+				else:
+					rowSpec.append('label')
+			currentRow += 1
+
+		# rowSpec returned
+		return rowSpec
 
 	def extractParams(self):
 		"""
