@@ -2,7 +2,8 @@
 from string import lower,replace,split,strip,split
 import kaplot
 import kaplot.defaults as kd
-from appscript import app,k
+from appscript import app
+from appscript import k as k_app
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 
@@ -41,6 +42,8 @@ def _convertToFloatOrBool(x):
 
 def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 	fn = getattr(k,fnName)
+	fnArgs = str(fnArgs)
+	fnKwargs = str(fnKwargs)
 	args = fnArgs.split(',')
 	args = map(_convertToFloatOrBool,args)
 	kwargsSplit = fnKwargs.split(',')
@@ -72,12 +75,12 @@ class ExcelSelection:
 		"""
 		Inserts plot into new worksheet.
 		"""
-		newSheet = app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)
+		newSheet = app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k_app.worksheet)
 		# get HFS style path
 		applescriptCommand = 'return POSIX file "%s" as string' % self.ntf.name
 		p = Popen(['osascript','-e',applescriptCommand],stdout=PIPE)
 		osxPath = p.communicate()[0].strip('\n')
-		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
+		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k_app.picture, with_properties={k_app.file_name: osxPath, k_app.height: 480, k_app.width: 640})
 		self.ntf.close()
 
 	def _determineRows(self):
@@ -145,17 +148,18 @@ class ExcelSelection:
 			settings = None
 		self.k = kaplot.kaplot(settings=settings)
 
-		# Check for any set_ rows
+		# Check for any set_ rows. Also see if set_legend was explicitly specified.
+		self.set_legend_run = False
 		for i,r in enumerate(rowSpec):
 			if r == 'set_':
 				fnName = selectionList[i][0]
 				fnArgs = selectionList[i][1]
 				fnKwargs = selectionList[i][2]
-				_runKaplotFunction(k, fnName, fnArgs, fnKwargs)
+				_runKaplotFunction(self.k, fnName, fnArgs, fnKwargs)
+				if fnName == 'set_legend':
+					self.set_legend_run = True
 
-		# If a set_legend wasn't explicitly specified, infer based on the absence or presence of a legend row
-		if 'set_legend' not in rowSpec:
-			self.isLegend = 'legend' in rowSpec
+		self.isLegend = 'legend' in rowSpec
 
 		# assemble the rest of the things
 		standardSelectionList = []
@@ -307,7 +311,7 @@ class ExcelSelection:
 		for dataset in self._datasets:
 			kwargs = dataset.kwargs
 			if self.isLegend:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label, **kwargs)
+				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=(dataset.label or '_nolegend_'), **kwargs)
 			else:
 				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
 		for i,lname in enumerate(self._layers):
@@ -316,7 +320,7 @@ class ExcelSelection:
 				kwargs['color'] = self._layer_colors[lname]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname, **kwargs)
-			if self.isLegend:
+			if not self.set_legend_run:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		k.makePlot()
 		if show:
