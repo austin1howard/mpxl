@@ -27,7 +27,29 @@ def _is_float(value):
 	except:
 		return False
 
-"""app(u'Microsoft Excel').active_workbook.make(at=app.active_workbook.end, new=k.worksheet)"""
+def _convertToFloatOrBool(x):
+	"""if x can be converted to float or bool, do so and return the result"""
+	try:
+		return float(x)
+	except:
+		if lower(x) == 'true':
+			return True
+		elif lower(x) == 'false':
+			return False
+		else:
+			return x
+
+def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
+	fn = getattr(k,fnName)
+	args = fnArgs.split(',')
+	args = map(_convertToFloatOrBool,args)
+	kwargsSplit = fnKwargs.split(',')
+	kwargs = {}
+	for kwarg in kwargsSplit:
+		key,value = kwarg.split('=')
+		kwargs[key] = _convertToFloatOrBool(value)
+	fn(*args,**kwargs)
+
 
 class ExcelSelection:
 	def __init__(self):
@@ -43,7 +65,7 @@ class ExcelSelection:
 		Gets the active selection from excel using appscript module.
 		Returns list of lists, and saves as self.selectionList
 		"""
-		self.selectionList = app(u'Microsoft Excel').selection.value.get()
+		self.selectionList = app(u'Microsoft Excel').selection.value.get() # get selection
 		return self.selectionList
 
 	def insertPlot(self):
@@ -58,7 +80,7 @@ class ExcelSelection:
 		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k.picture, with_properties={k.file_name: osxPath, k.height: 480, k.width: 640})
 		self.ntf.close()
 
-	def determineRows(self):
+	def _determineRows(self):
 		"""
 		Determines the row layout of the spreadsheet
 		Possible options are:
@@ -82,7 +104,7 @@ class ExcelSelection:
 			# first check for params
 			if col1 == 'settings':
 				rowSpec.append('settings')
-			elif col1.startswith('set_'):
+			elif type(col1) == type(u'') and col1.startswith('set_'):
 				rowSpec.append('set_')
 			elif _is_float(col1):
 				# double check
@@ -90,11 +112,13 @@ class ExcelSelection:
 					# two rows of numbers in a row, probably onto data
 					rowSpec.append('data')
 					break # once we hit data, we're done
-			elif lower(col1) in ['x','y','xerr','yerr']:
+			elif type(col1) == type(u'') and lower(col1) in ['x','y','xerr','yerr']:
 				rowSpec.append('schema')
 			else:
 				# if nothing above, must be in the label section.
-				if rowSpec[-1] == 'label':
+				if rowSpec == []:
+					rowSpec.append('label')
+				elif rowSpec[-1] == 'label':
 					rowSpec.append('units')
 				elif rowSpec[-1] == 'units':
 					rowSpec.append('legend')
@@ -105,27 +129,60 @@ class ExcelSelection:
 		# rowSpec returned
 		return rowSpec
 
+	def _standardizeSelection(self):
+		"""
+		Returns a selectionList which is in the standard format expected by extractParams.
+		"""
+		rowSpec = self._determineRows()
+		selectionList = self.selectionList
+		width = len(selectionList[rowSpec.index('data')]) # width of the data columns in excel
+
+		# If settings specified, needs to be passed to kaplot.__init__
+		try:
+			settings_index = rowSpec.index('settings')
+			settings = selectionList[settings_index][1]
+		except ValueError:
+			settings = None
+		self.k = kaplot.kaplot(settings=settings)
+
+		# Check for any set_ rows
+		for i,r in enumerate(rowSpec):
+			if r == 'set_':
+				fnName = selectionList[i][0]
+				fnArgs = selectionList[i][1]
+				fnKwargs = selectionList[i][2]
+				_runKaplotFunction(k, fnName, fnArgs, fnKwargs)
+
+		# If a set_legend wasn't explicitly specified, infer based on the absence or presence of a legend row
+		if 'set_legend' not in rowSpec:
+			self.isLegend = 'legend' in rowSpec
+
+		# assemble the rest of the things
+		standardSelectionList = []
+
+		for rowName in ['label','units','legend']:
+			if rowName in rowSpec:
+				standardSelectionList.append(selectionList[rowSpec.index(rowName)])
+			else:
+				standardSelectionList.append([''] * width)
+
+		if 'schema' in rowSpec:
+			standardSelectionList.append(selectionList[rowSpec.index('schema')])
+		else:
+			standardSelectionList.append(['X','Y'] * (width/2))
+
+		# Add data
+		dataList = selectionList[rowSpec.index('data'):]
+		standardSelectionList += dataList
+		self.standardSelectionList = standardSelectionList
+		return standardSelectionList
+
 	def extractParams(self):
 		"""
 		Extracts the header information from the selection. Going down the rows step by step, we look for the following information.
 		If it's found, advance to the next row and go to the next step, otherwise just go to the next step for the same row.
 
-		1) Title (If A1 is the word title, B1 is the title of the plot. Otherwise there's no title, and this row is thought of as row 2.)
-
-		2) Settings (If A2 is the work settings, B2 is a comma separated list of words which are settings in kaplot.defaults)
-
-		3) TODO: Plot Style (If A2 is the word style, B2 is one of: line, scatter, hist, etc. If not specified assume line plot,
-			and treat this row as row 3.)
-
-		4) Label (required)
-
-		5) Units (required)
-
-		6) Legend entries:
-			If row starts with a single "X", assume it is for the schema and skip the legend. Otherwise the items here will be put
-			into a legend should there be more than one Y per X.
-
-		7) Schema:
+		Schema:
 		Each cell contains one of the following:
 			X, Y, Xerr, Yerr
 		to specify the type of data in that column. Columns pair in the same way as Origin. For example, X | Y | Y | Yerr
@@ -158,49 +215,17 @@ class ExcelSelection:
 			
 		The numbers show the xy data pairing, and which axes that pairing will be plotted against.
 		The layer name may be followed by another semicolon (;) and a semicolon separated list of kwargs: e.g., X;main;lw=10;marker=o
-		
+		self.isLegend = False
 		Data:
 			Data is collected in the corresponding MPLDataSet object.
 		"""
-		selectionList = self.selectionList
-		currentRow = 0
-		# Title
-		if lower(selectionList[currentRow][0]) == 'title':
-			self.title = selectionList[currentRow][1]
-			self.isTitle = True
-			currentRow += 1
-		else:
-			self.isTitle = False
-
-		# Settings
-		if lower(selectionList[currentRow][0]) == 'settings':
-			self.settings = []
-			for setting in split(selectionList[currentRow][1],','):
-				# try to import and use
-				if setting in kd.__dict__.keys():
-					self.settings.append(getattr(kd,setting))
-			currentRow += 1
-		else:
-			self.settings = None
-
-		# Label and Units
-		self.labels = selectionList[currentRow]
-		currentRow += 1
-		self.units = selectionList[currentRow]
-		currentRow += 1
-
-		# Legend, if it exists
-		if lower(selectionList[currentRow][0])[0] != 'x':
-			# There is a legend row
-			self.legend = selectionList[currentRow]
-			self.isLegend = True
-			currentRow += 1
-		else:
-			self.isLegend = False
-
-		# Schema
-		self.schema = selectionList[currentRow]
-		self.dataStartRow = currentRow + 1
+		selectionList = self._standardizeSelection()
+		
+		self.labels = selectionList[0]
+		self.units = selectionList[1]
+		self.legend = selectionList[2]
+		self.schema = selectionList[3]
+		self.dataStartRow = 4
 		self.processSchema()
 
 	def processSchema(self):
@@ -258,7 +283,7 @@ class ExcelSelection:
 				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer),kwargs))
 				self._layers.add(lower(layer))
 				self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
-				self._layer_units[lower(layer)] = (self.units[xCol],self.units[yCol])
+				self._layer_units[lower(layer)] = (self.units[xCol] or None,self.units[yCol] or None)
 				# see if color specified:
 				if 'color' in kwargs.keys():
 					self._layer_colors[lower(layer)] = kwargs['color']
@@ -266,11 +291,11 @@ class ExcelSelection:
 					self._layer_colors[lower(layer)] = None
 
 
-	def makePlot(self):
+	def makePlot(self,show=False):
 		"""
-		Makes plot in matplotlib using kaplot extension, and saves to temporary file.
+		Makes plot in matplotlib using kaplot extension, and saves to temporary file. If show == True, displays plot (for debugging only)
 		"""
-		k = kaplot.kaplot(settings=self.settings)
+		k = self.k # TODO change all k's to self.k's
 		# Add all the layers (except 'main')
 		# self._layers.remove('main')
 		for lname in self._layers:
@@ -285,9 +310,6 @@ class ExcelSelection:
 				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=dataset.label, **kwargs)
 			else:
 				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
-		# And the rest of the stuff
-		if self.isTitle:
-			k.set_title(self.title)
 		for i,lname in enumerate(self._layers):
 			kwargs = {}
 			if lname != 'main' and self._layer_colors[lname]:
@@ -297,9 +319,11 @@ class ExcelSelection:
 			if self.isLegend:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		k.makePlot()
-		# k.showMe()
-		self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
-		k.saveMe(self.ntf.name,dpi=80)
+		if show:
+			k.showMe()
+		else:
+			self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
+			k.saveMe(self.ntf.name,dpi=80)
 
 class MPLDataSet:
 	"""
@@ -309,7 +333,7 @@ class MPLDataSet:
 		"""
 		Extracts data from selectionList, and adds to MPLLayer
 		"""
-		dataList = selection.selectionList[selection.dataStartRow:]
+		dataList = selection.standardSelectionList[selection.dataStartRow:]
 		dataList = map(list, zip(*dataList))
 		self.xData = dataList[xCol]
 		self.yData = dataList[yCol]
