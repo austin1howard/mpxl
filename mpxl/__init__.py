@@ -46,11 +46,12 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 	fnKwargs = str(fnKwargs)
 	args = fnArgs.split(',')
 	args = map(_convertToFloatOrBool,args)
-	kwargsSplit = fnKwargs.split(',')
 	kwargs = {}
-	for kwarg in kwargsSplit:
-		key,value = kwarg.split('=')
-		kwargs[key] = _convertToFloatOrBool(value)
+	if fnKwargs != '':
+		kwargsSplit = fnKwargs.split(',')
+		for kwarg in kwargsSplit:
+			key,value = kwarg.split('=')
+			kwargs[key] = _convertToFloatOrBool(value)
 	fn(*args,**kwargs)
 
 
