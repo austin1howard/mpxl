@@ -40,15 +40,21 @@ def _convertToFloatOrBool(x):
 		else:
 			return x
 
+def _splitEscaped(s,spl):
+	"""splits `s` at `spl`, unless `spl` is preceeded by a backslash ("escaped")"""
+	ret = s.replace('\\'+spl,'<>><<>').split(spl)
+	ret = map(lambda x: x.replace('<>><<>',';'),ret)
+	return ret
+
 def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 	fn = getattr(k,fnName)
 	fnArgs = str(fnArgs)
 	fnKwargs = str(fnKwargs)
-	args = fnArgs.split(',')
+	args = _splitEscaped(fnArgs,';')
 	args = map(_convertToFloatOrBool,args)
 	kwargs = {}
 	if fnKwargs != '':
-		kwargsSplit = fnKwargs.split(',')
+		kwargsSplit = _splitEscaped(fnKwargs,';')
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
 			kwargs[key] = _convertToFloatOrBool(value)
@@ -276,7 +282,7 @@ class ExcelSelection:
 						# get the kwargs
 						kwargsString = layerInfo[1]
 						kwargs = {}
-						for kwarg in split(kwargsString,';'):
+						for kwarg in _splitEscaped(kwargsString,';'):
 							key,value = kwarg.split('=')
 							kwargs[key] = value
 					else:
