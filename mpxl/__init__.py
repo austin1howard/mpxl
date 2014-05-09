@@ -122,7 +122,7 @@ class ExcelSelection:
 					# two rows of numbers in a row, probably onto data
 					rowSpec.append('data')
 					break # once we hit data, we're done
-			elif type(col1) == type(u'') and lower(col1) in ['x','y','xerr','yerr']:
+			elif type(col1) == type(u'') and lower(col1).startswith(('x','y','xerr','yerr')):
 				rowSpec.append('schema')
 			else:
 				# if nothing above, must be in the label section.
