@@ -7,7 +7,7 @@ from appscript import k as k_app
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 
-__version__ = '0.3a'
+__version__ = '1.0'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
