@@ -150,7 +150,8 @@ class ExcelSelection:
 		# If settings specified, needs to be passed to kaplot.__init__
 		try:
 			settings_index = rowSpec.index('settings')
-			settings = selectionList[settings_index][1]
+			settingsStrings = _splitEscaped(selectionList[settings_index][1],';')
+			settings = map(lambda x: getattr(kd,x), settingsStrings)
 		except ValueError:
 			settings = None
 		self.k = kaplot.kaplot(settings=settings)
@@ -293,13 +294,16 @@ class ExcelSelection:
 				# This is a complete dataset
 				self._datasets.append(MPLDataSet(self,xCol,xErr,yCol,yErr,lower(layer),kwargs))
 				self._layers.add(lower(layer))
-				self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
-				self._layer_units[lower(layer)] = (self.units[xCol] or None,self.units[yCol] or None)
-				# see if color specified:
-				if 'color' in kwargs.keys():
-					self._layer_colors[lower(layer)] = kwargs['color']
-				else:
-					self._layer_colors[lower(layer)] = None
+				if lower(layer) not in self._layer_labels:
+					self._layer_labels[lower(layer)] = (self.labels[xCol],self.labels[yCol])
+				if lower(layer) not in self._layer_units:
+					self._layer_units[lower(layer)] = (self.units[xCol] or None,self.units[yCol] or None)
+				if lower(layer) not in self._layer_colors:
+					# see if color specified:
+					if u'color' in kwargs.keys():
+						self._layer_colors[lower(layer)] = kwargs['color']
+					else:
+						self._layer_colors[lower(layer)] = None
 
 
 	def makePlot(self,show=False):
