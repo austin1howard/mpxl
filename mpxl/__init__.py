@@ -6,6 +6,7 @@ from appscript import app
 from appscript import k as k_app
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
+from inspect import getargspec
 
 __version__ = '1.0'
 
@@ -48,17 +49,25 @@ def _splitEscaped(s,spl):
 
 def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 	fn = getattr(k,fnName)
-	fnArgs = str(fnArgs)
-	fnKwargs = str(fnKwargs)
-	args = _splitEscaped(fnArgs,';')
-	args = map(_convertToFloatOrBool,args)
+	argsNeeded = (getargspec(fn)[1] != None or len(getargspec(fn)[0]) > 1) # if the length is 1 it's just self
+	if not argsNeeded and '=' in str(fnArgs):
+		# most likely the user meant to pass kwargs in the second column
+		fnKwargs = str(fnArgs)
+	else:
+		fnArgs = str(fnArgs)
+		fnKwargs = str(fnKwargs)
+		args = _splitEscaped(fnArgs,';')
+		args = map(_convertToFloatOrBool,args)
 	kwargs = {}
 	if fnKwargs != '':
 		kwargsSplit = _splitEscaped(fnKwargs,';')
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
 			kwargs[key] = _convertToFloatOrBool(value)
-	fn(*args,**kwargs)
+	if argsNeeded:
+		fn(*args,**kwargs)
+	else:
+		fn(**kwargs)
 
 
 class ExcelSelection:
