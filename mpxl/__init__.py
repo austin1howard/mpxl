@@ -78,6 +78,7 @@ class ExcelSelection:
 		self._layer_units = {}
 		self._layer_colors = {}
 		self.k = None # kaplot object
+		self.showOnly = False #overridden if "show" keyword used
 
 	def getSelection(self):
 		"""
@@ -121,8 +122,13 @@ class ExcelSelection:
 		while True:
 			col1 = self.selectionList[currentRow][0]
 			# first check for params
-			if col1 == 'settings':
+			if col1 == '':
+				rowSpec.append('blank')
+			elif col1 == 'settings':
 				rowSpec.append('settings')
+			elif col1 == 'show':
+				self.showOnly = True # used to only show the plot
+				rowSpec.append('show')
 			elif type(col1) == type(u'') and col1.startswith('set_'):
 				rowSpec.append('set_')
 			elif _is_float(col1):
@@ -343,7 +349,7 @@ class ExcelSelection:
 			if not self.set_legend_run:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		k.makePlot()
-		if show:
+		if show or self.showOnly:
 			k.showMe()
 		else:
 			self.ntf = NamedTemporaryFile(delete=False,suffix='.png')

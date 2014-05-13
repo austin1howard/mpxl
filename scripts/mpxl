@@ -5,4 +5,6 @@ s = mpxl.ExcelSelection()
 s.getSelection()
 s.extractParams()
 s.makePlot()
-s.insertPlot()
+if not s.showOnly:
+	s.insertPlot()
+	
