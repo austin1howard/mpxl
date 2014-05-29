@@ -196,14 +196,22 @@ class ExcelSelection:
 				standardSelectionList.append([''] * width)
 
 		if 'schema' in rowSpec:
-			standardSelectionList.append(selectionList[rowSpec.index('schema')])
+			schemaRow = selectionList[rowSpec.index('schema')]
 		else:
-			standardSelectionList.append(['X','Y'] * (width/2))
+			schemaRow = ['X','Y'] * (width/2)
+		standardSelectionList.append(schemaRow)
 
 		# Add data
 		dataList = selectionList[rowSpec.index('data'):]
 		standardSelectionList += dataList
 		self.standardSelectionList = standardSelectionList
+
+		# Clear _noshow_ and _skip_ columns
+		for col,colType in reversed(list(enumerate(schemaRow))):
+			if colType in ['_no_show_','_noshow_','_skip_']:
+				# remove that column
+				for row in standardSelectionList:
+					del row[col]
 		return standardSelectionList
 
 	def extractParams(self):
