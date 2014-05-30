@@ -131,6 +131,8 @@ class ExcelSelection:
 				rowSpec.append('show')
 			elif type(col1) == type(u'') and col1.startswith('set_'):
 				rowSpec.append('set_')
+			elif type(col1) == type(u'') and col1.startswith('add_'):
+				rowSpec.append('set_')
 			elif _is_float(col1):
 				# double check
 				if _is_float(self.selectionList[currentRow+1][0]):
