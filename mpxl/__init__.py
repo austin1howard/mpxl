@@ -365,7 +365,7 @@ class ExcelSelection:
 			k.showMe()
 		else:
 			self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
-			k.saveMe(self.ntf.name,dpi=80)
+			k.saveMe(self.ntf.name)
 
 class MPLDataSet:
 	"""
