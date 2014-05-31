@@ -181,7 +181,10 @@ class ExcelSelection:
 			if r == 'set_':
 				fnName = selectionList[i][0]
 				fnArgs = selectionList[i][1]
-				fnKwargs = selectionList[i][2]
+				try:
+					fnKwargs = selectionList[i][2]
+				except IndexError:
+					fnKwargs = u'' # only two columns selected
 				_runKaplotFunction(self.k, fnName, fnArgs, fnKwargs)
 				if fnName == 'set_legend':
 					self.set_legend_run = True
