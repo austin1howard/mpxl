@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
