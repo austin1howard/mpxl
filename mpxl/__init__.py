@@ -97,7 +97,7 @@ class ExcelSelection:
 		applescriptCommand = 'return POSIX file "%s" as string' % self.ntf.name
 		p = Popen(['osascript','-e',applescriptCommand],stdout=PIPE)
 		osxPath = p.communicate()[0].strip('\n')
-		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k_app.picture, with_properties={k_app.file_name: osxPath, k_app.height: 480, k_app.width: 640})
+		newPic = app(u'Microsoft Excel').make(at=newSheet.beginning, new=k_app.picture, with_properties={k_app.file_name: osxPath, k_app.height: self.pixelSize[1], k_app.width: self.pixelSize[0]})
 		self.ntf.close()
 
 	def _determineRows(self):
@@ -360,6 +360,11 @@ class ExcelSelection:
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname, **kwargs)
 			if not self.set_legend_run:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
+		# calculate plot size in pixels
+		dpi = k.SAVEFIG_SETTINGS['dpi']
+		width = k.SAVEFIG_SETTINGS['width']
+		height = k.SAVEFIG_SETTINGS['height']
+		self.pixelSize = (width * dpi , height * dpi)
 		k.makePlot()
 		if show or self.showOnly:
 			k.showMe()
