@@ -364,7 +364,7 @@ class ExcelSelection:
 		dpi = k.SAVEFIG_SETTINGS['dpi']
 		width = k.SAVEFIG_SETTINGS['width']
 		height = k.SAVEFIG_SETTINGS['height']
-		self.pixelSize = (width * dpi , height * dpi)
+		self.pixelSize = (width * 72 , height * 72)
 		k.makePlot()
 		if show or self.showOnly:
 			k.showMe()
