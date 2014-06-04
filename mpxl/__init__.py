@@ -122,7 +122,7 @@ class ExcelSelection:
 		while True:
 			col1 = self.selectionList[currentRow][0]
 			# first check for params
-			if col1 == '':
+			if all(cell == '' for cell in self.selectionList[currentRow]):
 				rowSpec.append('blank')
 			elif col1 == 'settings':
 				rowSpec.append('settings')
