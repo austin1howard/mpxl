@@ -84,8 +84,13 @@ class ExcelSelection:
 		"""
 		Gets the active selection from excel using appscript module.
 		Returns list of lists, and saves as self.selectionList
+
+		If there's multiple selections, combine into one
 		"""
-		self.selectionList = app(u'Microsoft Excel').selection.value.get() # get selection
+		areas = app("Microsoft Excel").selection.areas.get()
+		self.selectionList = areas.pop(0).value.get()
+		for area in areas:
+			self.selectionList = [row + area.value.get()[rowIndex] for rowIndex,row in enumerate(self.selectionList)]
 		return self.selectionList
 
 	def insertPlot(self):
