@@ -161,6 +161,7 @@ class ExcelSelection:
 			currentRow += 1
 
 		# rowSpec returned
+		print rowSpec
 		return rowSpec
 
 	def _standardizeSelection(self):
@@ -378,7 +379,7 @@ class ExcelSelection:
 			k.showMe()
 		else:
 			self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
-			k.saveMe(self.ntf.name)
+			k.saveMe(self.ntf.name,dpi=dpi)
 
 class MPLDataSet:
 	"""
