@@ -365,8 +365,17 @@ class ExcelSelection:
 			kwargs = {}
 			if lname != 'main' and self._layer_colors[lname]:
 				kwargs['color'] = self._layer_colors[lname]
-			k.set_xlabel(lab=self._layer_labels[lname][0],unit=self._layer_units[lname][0],name=lname, **kwargs)
-			k.set_ylabel(lab=self._layer_labels[lname][1],unit=self._layer_units[lname][1],name=lname, **kwargs)
+			# Allow for _ to be used as lack of units
+			if self._layer_units[lname][0] == '_':
+				xlab = None
+			else:
+				xlab =self._layer_units[lname][0]
+			if self._layer_units[lname][1] == '_':
+				ylab = None
+			else:
+				ylab =self._layer_units[lname][1]
+			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
+			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
 			if not self.set_legend_run:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
