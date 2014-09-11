@@ -9,7 +9,7 @@ from subprocess import PIPE,Popen
 from inspect import getargspec
 import wx
 
-__version__ = '1.2.3'
+__version__ = '1.3'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
