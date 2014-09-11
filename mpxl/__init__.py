@@ -79,6 +79,7 @@ class ExcelSelection:
 		self._layer_colors = {}
 		self.k = None # kaplot object
 		self.showOnly = False #overridden if "show" keyword used
+		self.pdf = False #overridden if 'pdf' keyword used
 
 	def getSelection(self):
 		"""
@@ -120,6 +121,7 @@ class ExcelSelection:
 		All of this may optionally be proceeded with rows specifying plot options. Each row takes the form:
 		`param`, `value` (multiple columns if needed), `kwargs` (multiple columns if needed). If param is "settings,"
 		then specify either a semicolon separated list of "settings" in kaplot.defaults or separate them across columns.
+		If param is "pdf", then second column should be a filename to save plot as in the default location.
 		Otherwise, param must be a `set_` function in kaplot. (i.e., `set_title`) which will be run with the supplied arguments.)
 		"""
 		rowSpec = []
@@ -131,6 +133,8 @@ class ExcelSelection:
 				rowSpec.append('blank')
 			elif col1 == 'settings':
 				rowSpec.append('settings')
+			elif col1 == 'pdf':
+				rowSpec.append('pdf')
 			elif col1 == 'show':
 				self.showOnly = True # used to only show the plot
 				rowSpec.append('show')
@@ -180,6 +184,14 @@ class ExcelSelection:
 		except ValueError:
 			settings = None
 		self.k = kaplot.kaplot(settings=settings)
+
+		# If pdf specified, need to get filename and set variable
+		try:
+			self.pdf = True
+			pdf_index = rowSpec.index('pdf')
+			self.pdf_filename = selectionList[pdf_index][1]
+		except ValueError:
+			pass
 
 		# Check for any set_ rows. Also see if set_legend was explicitly specified.
 		self.set_legend_run = False
@@ -386,6 +398,8 @@ class ExcelSelection:
 		k.makePlot()
 		if show or self.showOnly:
 			k.showMe()
+		elif self.pdf:
+			k.saveMe(self.pdf_filename)
 		else:
 			self.ntf = NamedTemporaryFile(delete=False,suffix='.png')
 			k.saveMe(self.ntf.name,dpi=dpi)

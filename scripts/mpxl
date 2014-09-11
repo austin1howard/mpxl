@@ -5,6 +5,6 @@ s = mpxl.ExcelSelection()
 s.getSelection()
 s.extractParams()
 s.makePlot()
-if not s.showOnly:
+if not s.showOnly and not s.pdf:
 	s.insertPlot()
 	
