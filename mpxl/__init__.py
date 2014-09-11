@@ -7,6 +7,7 @@ from appscript import k as k_app
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
+import wx
 
 __version__ = '1.2.3'
 
@@ -68,6 +69,17 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		fn(*args,**kwargs)
 	else:
 		fn(**kwargs)
+
+def _get_path():
+    app = wx.App(None)
+    style = wx.FD_SAVE
+    dialog = wx.FileDialog(None, 'Save', style=style)
+    if dialog.ShowModal() == wx.ID_OK:
+        path = dialog.GetPath()
+    else:
+        path = None
+    dialog.Destroy()
+    return path
 
 
 class ExcelSelection:
@@ -190,6 +202,11 @@ class ExcelSelection:
 			self.pdf = True
 			pdf_index = rowSpec.index('pdf')
 			self.pdf_filename = selectionList[pdf_index][1]
+			if self.pdf_filename == '':
+				# get from savebox
+				self.pdf_filename = _get_path()
+			if not self.pdf_filename.endswith('.pdf'):
+				self.pdf_filename += '.pdf'
 		except ValueError:
 			pass
 
