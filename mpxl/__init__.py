@@ -65,6 +65,7 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
 			kwargs[key] = _convertToFloatOrBool(value)
+	print kwargs
 	if argsNeeded:
 		fn(*args,**kwargs)
 	else:
@@ -350,7 +351,7 @@ class ExcelSelection:
 						kwargs = {}
 						for kwarg in _splitEscaped(kwargsString,';'):
 							key,value = kwarg.split('=')
-							kwargs[key] = value
+							kwargs[key] = _convertToFloatOrBool(value)
 					else:
 						kwargs = {}
 				else:
