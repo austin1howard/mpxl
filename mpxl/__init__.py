@@ -153,6 +153,7 @@ class ExcelSelection:
 				rowSpec.append('settings')
 			elif col1 == 'pdf':
 				rowSpec.append('pdf')
+				self.pdf = True
 			elif col1 == 'show':
 				self.showOnly = True # used to only show the plot
 				rowSpec.append('show')
@@ -205,7 +206,6 @@ class ExcelSelection:
 
 		# If pdf specified, need to get filename and set variable
 		try:
-			self.pdf = True
 			pdf_index = rowSpec.index('pdf')
 			self.pdf_filename = selectionList[pdf_index][1]
 			if self.pdf_filename == '':
