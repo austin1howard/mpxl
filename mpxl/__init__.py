@@ -21,6 +21,8 @@ _LAYER_SETTINGS.append({'location' : 'lower right'})
 _LAYER_SETTINGS.append({'twin' : 'x'})
 _LAYER_SETTINGS.append({'twin' : 'y'})
 
+_IGNORE_ME		= '!' # if an entry starts with _IGNORE_ME all values of that index (row) are ignored
+
 _LEGEND_LOCATIONS = ['upper right', 'upper left', 'lower left', 'lower right']
 
 def _is_float(value):
@@ -102,9 +104,13 @@ class ExcelSelection:
 		If there's multiple selections, combine into one
 		"""
 		areas = app("Microsoft Excel").selection.areas.get()
-		self.selectionList = areas.pop(0).value.get()
+		tmp_selectionList 	= areas.pop(0).value.get()
+		self.selectionList 	= []
 		for area in areas:
-			self.selectionList = [row + area.value.get()[rowIndex] for rowIndex,row in enumerate(self.selectionList)]
+			tmp_selectionList = [row + area.value.get()[rowIndex] for rowIndex,row in enumerate(tmp_selectionList)]
+		for i,selection in enumerate(tmp_selectionList):
+			if not str(selection[0]).startswith(_IGNORE_ME):
+				self.selectionList.append(selection)
 		return self.selectionList
 
 	def insertPlot(self):
@@ -148,6 +154,7 @@ class ExcelSelection:
 				rowSpec.append('settings')
 			elif col1 == 'pdf':
 				rowSpec.append('pdf')
+				self.pdf = True
 			elif col1 == 'show':
 				self.showOnly = True # used to only show the plot
 				rowSpec.append('show')
@@ -200,7 +207,6 @@ class ExcelSelection:
 
 		# If pdf specified, need to get filename and set variable
 		try:
-			self.pdf = True
 			pdf_index = rowSpec.index('pdf')
 			self.pdf_filename = selectionList[pdf_index][1]
 			if self.pdf_filename == '':
