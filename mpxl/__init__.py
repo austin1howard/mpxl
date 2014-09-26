@@ -9,7 +9,7 @@ from subprocess import PIPE,Popen
 from inspect import getargspec
 import wx
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -67,7 +67,6 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
 			kwargs[key] = _convertToFloatOrBool(value)
-	print kwargs
 	if argsNeeded:
 		fn(*args,**kwargs)
 	else:
@@ -185,7 +184,6 @@ class ExcelSelection:
 			currentRow += 1
 
 		# rowSpec returned
-		print rowSpec
 		return rowSpec
 
 	def _standardizeSelection(self):
@@ -412,7 +410,7 @@ class ExcelSelection:
 				ylab =self._layer_units[lname][1]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
-			if not self.set_legend_run:
+			if self.set_legend_run:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
 		dpi = k.SAVEFIG_SETTINGS['dpi']
