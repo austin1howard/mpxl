@@ -9,7 +9,7 @@ from subprocess import PIPE,Popen
 from inspect import getargspec
 import wx
 
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -67,7 +67,6 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
 			kwargs[key] = _convertToFloatOrBool(value)
-	print kwargs
 	if argsNeeded:
 		fn(*args,**kwargs)
 	else:
@@ -185,7 +184,6 @@ class ExcelSelection:
 			currentRow += 1
 
 		# rowSpec returned
-		print rowSpec
 		return rowSpec
 
 	def _standardizeSelection(self):
