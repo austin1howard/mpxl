@@ -7,9 +7,8 @@ from appscript import k as k_app
 from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
-import wx
 
-__version__ = '1.3.2'
+__version__ = '1.4~beta1'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -73,15 +72,10 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		fn(**kwargs)
 
 def _get_path():
-    app = wx.App(None)
-    style = wx.FD_SAVE
-    dialog = wx.FileDialog(None, 'Save', style=style)
-    if dialog.ShowModal() == wx.ID_OK:
-        path = dialog.GetPath()
-    else:
-        path = None
-    dialog.Destroy()
-    return path
+	applescriptCommand = 'POSIX path of (choose file name with prompt "Save PDF...")'
+	p = Popen(['osascript','-e',applescriptCommand],stdout=PIPE)
+	osxPath = p.communicate()[0].strip('\n')
+	return osxPath
 
 
 class ExcelSelection:
