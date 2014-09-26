@@ -5,4 +5,4 @@ OS X package which grabs selection from Microsoft Excel, and plots with `kaplot`
 
 Includes a script which is installed into python's `bin` folder. This can be run from command line, or could be included into an Automator script to attach to keyboard shortcut.
 
-Requires `kaplot`, `appscript`, and `wxPython` modules, all available from [pypi](http://pypi.python.org).
+Requires `kaplot` and `appscript`, available from [pypi](http://pypi.python.org).
