@@ -213,7 +213,6 @@ class ExcelSelection:
 			pass
 
 		# Check for any set_ rows. Also see if set_legend was explicitly specified.
-		#self.set_legend_run = False
 		for i,r in enumerate(rowSpec):
 			if r == 'set_':
 				fnName = selectionList[i][0]
@@ -223,8 +222,6 @@ class ExcelSelection:
 				except IndexError:
 					fnKwargs = u'' # only two columns selected
 				_runKaplotFunction(self.k, fnName, fnArgs, fnKwargs)
-				#if fnName == 'set_legend':
-				#	self.set_legend_run = True
 
 		self.isLegend = 'legend' in rowSpec
 
@@ -435,10 +432,6 @@ class MPLDataSet:
 		dataList = map(list, zip(*dataList))
 		self.xData = dataList[xCol]
 		self.yData = dataList[yCol]
-		# remove blank entries at end
-		while self.xData[-1] == '':
-			self.xData.pop()
-			self.yData.pop()
 		if xErr:
 			self.xErr = dataList[xErr]
 		else:
@@ -447,6 +440,17 @@ class MPLDataSet:
 			self.yErr = dataList[yErr]
 		else:
 			self.yErr = None
+		## ALL DATA SETS HAVE BEEN BUILT
+		## CLEANUP DATA SETS
+		# remove blank lines
+		while self.xData[-1] == '':
+			self.xData.pop()
+			self.yData.pop()
+			if self.xErr is not None:
+				self.xErr.pop()
+			if self.yErr is not None:
+				self.yErr.pop()
+		## END OF CLEANUP
 		self.layer = layer
 		self.kwargs = kwargs
 		if selection.isLegend:
