@@ -430,26 +430,52 @@ class MPLDataSet:
 		"""
 		dataList = selection.standardSelectionList[selection.dataStartRow:]
 		dataList = map(list, zip(*dataList))
-		self.xData = dataList[xCol]
-		self.yData = dataList[yCol]
+		self._xData = dataList[xCol]
+		self._yData = dataList[yCol]
 		if xErr:
-			self.xErr = dataList[xErr]
+			self._xErr = dataList[xErr]
 		else:
-			self.xErr = None
+			self._xErr = None
 		if yErr:
-			self.yErr = dataList[yErr]
+			self._yErr = dataList[yErr]
 		else:
-			self.yErr = None
+			self._yErr = None
 		## ALL DATA SETS HAVE BEEN BUILT
 		## CLEANUP DATA SETS
 		# remove blank lines
-		while self.xData[-1] == '':
-			self.xData.pop()
-			self.yData.pop()
-			if self.xErr is not None:
-				self.xErr.pop()
-			if self.yErr is not None:
-				self.yErr.pop()
+		while self._xData[-1] == '':
+			self._xData.pop()
+			self._yData.pop()
+			if self._xErr is not None:
+				self._xErr.pop()
+			if self._yErr is not None:
+				self._yErr.pop()
+		# remove bad entries (non-float)
+		self.xData = []
+		self.yData = []
+		if self._xErr is None:
+			self.xErr = None
+		else:
+			self.xErr = []
+		if self._yErr is None:
+			self.yErr = None
+		else:
+			self.yErr = []
+		for i,x in enumerate(self._xData):
+			y = self._yData[i]
+			if type(x) == type(0.0) and type(y) == type(0.0):
+				self.xData.append(x)
+				self.yData.append(y)
+				if self.yErr is not None:
+					if type(self._yErr[i]) == type(0.0):
+						self.yErr.append(self._yErr[i])
+					else:
+						self.yErr.append(0.0)
+				if self.xErr is not None:
+					if type(self._xErr) == type(0.0):
+						self.xErr.append(self._xErr[i])
+					else:
+						self.xErr.append(0.0)
 		## END OF CLEANUP
 		self.layer = layer
 		self.kwargs = kwargs
