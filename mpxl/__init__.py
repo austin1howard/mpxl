@@ -31,10 +31,13 @@ def _is_float(value):
 	except:
 		return False
 
-def _convertToFloatOrBool(x):
-	"""if x can be converted to float or bool, do so and return the result"""
+def _convertToFloatOrBoolOrInt(x):
+	"""if x can be converted to float or bool or int, do so and return the result"""
 	try:
-		return float(x)
+		if float(x) == int(x):
+			return int(x)
+		else:
+			return float(x)
 	except:
 		if lower(x) == 'true':
 			return True
@@ -59,13 +62,13 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		fnArgs = str(fnArgs)
 		fnKwargs = str(fnKwargs)
 		args = _splitEscaped(fnArgs,';')
-		args = map(_convertToFloatOrBool,args)
+		args = map(_convertToFloatOrBoolOrInt,args)
 	kwargs = {}
 	if fnKwargs != '':
 		kwargsSplit = _splitEscaped(fnKwargs,';')
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
-			kwargs[key] = _convertToFloatOrBool(value)
+			kwargs[key] = _convertToFloatOrBoolOrInt(value)
 	if argsNeeded:
 		fn(*args,**kwargs)
 	else:
@@ -349,7 +352,7 @@ class ExcelSelection:
 						kwargs = {}
 						for kwarg in _splitEscaped(kwargsString,';'):
 							key,value = kwarg.split('=')
-							kwargs[key] = _convertToFloatOrBool(value)
+							kwargs[key] = _convertToFloatOrBoolOrInt(value)
 					else:
 						kwargs = {}
 				else:
