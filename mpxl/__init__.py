@@ -213,7 +213,7 @@ class ExcelSelection:
 			pass
 
 		# Check for any set_ rows. Also see if set_legend was explicitly specified.
-		self.set_legend_run = False
+		#self.set_legend_run = False
 		for i,r in enumerate(rowSpec):
 			if r == 'set_':
 				fnName = selectionList[i][0]
@@ -223,8 +223,8 @@ class ExcelSelection:
 				except IndexError:
 					fnKwargs = u'' # only two columns selected
 				_runKaplotFunction(self.k, fnName, fnArgs, fnKwargs)
-				if fnName == 'set_legend':
-					self.set_legend_run = True
+				#if fnName == 'set_legend':
+				#	self.set_legend_run = True
 
 		self.isLegend = 'legend' in rowSpec
 
@@ -407,7 +407,7 @@ class ExcelSelection:
 				ylab =self._layer_units[lname][1]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
-			if self.set_legend_run:
+			if self.isLegend:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
 		dpi = k.SAVEFIG_SETTINGS['dpi']
