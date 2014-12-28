@@ -7,4 +7,3 @@ s.extractParams()
 s.makePlot()
 if not s.showOnly and not s.pdf:
 	s.insertPlot()
-	
