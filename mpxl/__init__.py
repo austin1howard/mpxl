@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
 
-__version__ = '1.4~beta1'
+__version__ = '1.4~beta1~km1'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -217,6 +217,10 @@ class ExcelSelection:
 			if r == 'set_':
 				fnName = selectionList[i][0]
 				fnArgs = selectionList[i][1]
+				if lower(fnName) == 'set_legend':
+					self.isLegend_specified = True
+				else:
+					self.isLegend_specified = False
 				try:
 					fnKwargs = selectionList[i][2]
 				except IndexError:
@@ -404,7 +408,7 @@ class ExcelSelection:
 				ylab =self._layer_units[lname][1]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
-			if self.isLegend:
+			if self.isLegend and self.isLegend_specified == False:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
 		dpi = k.SAVEFIG_SETTINGS['dpi']
