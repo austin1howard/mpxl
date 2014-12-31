@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
 
-__version__ = '1.4~beta1'
+__version__ = '1.4~beta1~km1'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -31,10 +31,13 @@ def _is_float(value):
 	except:
 		return False
 
-def _convertToFloatOrBool(x):
-	"""if x can be converted to float or bool, do so and return the result"""
+def _convertToFloatOrBoolOrInt(x):
+	"""if x can be converted to float or bool or int, do so and return the result"""
 	try:
-		return float(x)
+		if float(x) == int(x):
+			return int(x)
+		else:
+			return float(x)
 	except:
 		if lower(x) == 'true':
 			return True
@@ -59,13 +62,13 @@ def _runKaplotFunction(k,fnName,fnArgs,fnKwargs):
 		fnArgs = str(fnArgs)
 		fnKwargs = str(fnKwargs)
 		args = _splitEscaped(fnArgs,';')
-		args = map(_convertToFloatOrBool,args)
+		args = map(_convertToFloatOrBoolOrInt,args)
 	kwargs = {}
 	if fnKwargs != '':
 		kwargsSplit = _splitEscaped(fnKwargs,';')
 		for kwarg in kwargsSplit:
 			key,value = kwarg.split('=')
-			kwargs[key] = _convertToFloatOrBool(value)
+			kwargs[key] = _convertToFloatOrBoolOrInt(value)
 	if argsNeeded:
 		fn(*args,**kwargs)
 	else:
@@ -210,18 +213,19 @@ class ExcelSelection:
 			pass
 
 		# Check for any set_ rows. Also see if set_legend was explicitly specified.
-		self.set_legend_run = False
 		for i,r in enumerate(rowSpec):
 			if r == 'set_':
 				fnName = selectionList[i][0]
 				fnArgs = selectionList[i][1]
+				if lower(fnName) == 'set_legend':
+					self.isLegend_specified = True
+				else:
+					self.isLegend_specified = False
 				try:
 					fnKwargs = selectionList[i][2]
 				except IndexError:
 					fnKwargs = u'' # only two columns selected
 				_runKaplotFunction(self.k, fnName, fnArgs, fnKwargs)
-				if fnName == 'set_legend':
-					self.set_legend_run = True
 
 		self.isLegend = 'legend' in rowSpec
 
@@ -349,7 +353,7 @@ class ExcelSelection:
 						kwargs = {}
 						for kwarg in _splitEscaped(kwargsString,';'):
 							key,value = kwarg.split('=')
-							kwargs[key] = _convertToFloatOrBool(value)
+							kwargs[key] = _convertToFloatOrBoolOrInt(value)
 					else:
 						kwargs = {}
 				else:
@@ -404,7 +408,7 @@ class ExcelSelection:
 				ylab =self._layer_units[lname][1]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
-			if self.set_legend_run:
+			if self.isLegend and self.isLegend_specified == False:
 				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
 		dpi = k.SAVEFIG_SETTINGS['dpi']
@@ -430,20 +434,53 @@ class MPLDataSet:
 		"""
 		dataList = selection.standardSelectionList[selection.dataStartRow:]
 		dataList = map(list, zip(*dataList))
-		self.xData = dataList[xCol]
-		self.yData = dataList[yCol]
-		# remove blank entries at end
-		while self.xData[-1] == '':
-			self.xData.pop()
-			self.yData.pop()
+		self._xData = dataList[xCol]
+		self._yData = dataList[yCol]
 		if xErr:
-			self.xErr = dataList[xErr]
+			self._xErr = dataList[xErr]
 		else:
-			self.xErr = None
+			self._xErr = None
 		if yErr:
-			self.yErr = dataList[yErr]
+			self._yErr = dataList[yErr]
 		else:
+			self._yErr = None
+		## ALL DATA SETS HAVE BEEN BUILT
+		## CLEANUP DATA SETS
+		# remove blank lines
+		while self._xData[-1] == '':
+			self._xData.pop()
+			self._yData.pop()
+			if self._xErr is not None:
+				self._xErr.pop()
+			if self._yErr is not None:
+				self._yErr.pop()
+		# remove bad entries (non-float)
+		self.xData = []
+		self.yData = []
+		if self._xErr is None:
+			self.xErr = None
+		else:
+			self.xErr = []
+		if self._yErr is None:
 			self.yErr = None
+		else:
+			self.yErr = []
+		for i,x in enumerate(self._xData):
+			y = self._yData[i]
+			if type(x) == type(0.0) and type(y) == type(0.0):
+				self.xData.append(x)
+				self.yData.append(y)
+				if self.yErr is not None:
+					if type(self._yErr[i]) == type(0.0):
+						self.yErr.append(self._yErr[i])
+					else:
+						self.yErr.append(0.0)
+				if self.xErr is not None:
+					if type(self._xErr) == type(0.0):
+						self.xErr.append(self._xErr[i])
+					else:
+						self.xErr.append(0.0)
+		## END OF CLEANUP
 		self.layer = layer
 		self.kwargs = kwargs
 		if selection.isLegend:
