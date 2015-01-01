@@ -34,8 +34,8 @@ def _is_float(value):
 def _convertToFloatOrBoolOrInt(x):
 	"""if x can be converted to float or bool or int, do so and return the result"""
 	try:
-		if isinstance(val, (bool)):
-			nv = bool(val)
+		if isinstance(x, (bool)):
+			nv = bool(x)
 		elif float(x) == int(x):
 			nv = int(x)
 		else:
@@ -47,7 +47,7 @@ def _convertToFloatOrBoolOrInt(x):
 		elif lower(x) == 'false':
 			nv = False 
 	return nv
-	
+
 def _splitEscaped(s,spl):
 	"""splits `s` at `spl`, unless `spl` is preceeded by a backslash ("escaped")"""
 	ret = s.replace('\\'+spl,'<>><<>').split(spl)
