@@ -36,7 +36,7 @@ def _convertToFloatOrBoolOrInt(x):
 	try:
 		if isinstance(x, (bool)):
 			nv = bool(x)
-		elif float(x) == int(x):
+		elif float(x) == round(float(x)):
 			nv = int(x)
 		else:
 			nv = float(x)
