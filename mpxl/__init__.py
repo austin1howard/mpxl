@@ -391,10 +391,10 @@ class ExcelSelection:
 		# Add all the data
 		for dataset in self._datasets:
 			kwargs = dataset.kwargs
-			if self.isLegend:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=(dataset.label or '_nolegend_'), **kwargs)
-			else:
-				k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
+			#if self.isLegend:
+			k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer,label=(dataset.label or '_nolegend_'), **kwargs)
+			#else:
+			#	k.add_plotdata(x=dataset.xData,y=dataset.yData,xerr=dataset.xErr,yerr=dataset.yErr,name=dataset.layer, **kwargs)
 		for i,lname in enumerate(self._layers):
 			kwargs = {}
 			if lname != 'main' and self._layer_colors[lname]:
@@ -410,8 +410,8 @@ class ExcelSelection:
 				ylab =self._layer_units[lname][1]
 			k.set_xlabel(lab=self._layer_labels[lname][0],unit=xlab,name=lname, **kwargs)
 			k.set_ylabel(lab=self._layer_labels[lname][1],unit=ylab,name=lname, **kwargs)
-			if self.isLegend and self.isLegend_specified == False:
-				k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
+			#if self.isLegend and self.isLegend_specified == False:
+			#	k.set_legend(True,loc=_LEGEND_LOCATIONS[i],name=lname)
 		# calculate plot size in pixels
 		dpi = k.SAVEFIG_SETTINGS['dpi']
 		width = k.SAVEFIG_SETTINGS['width']
