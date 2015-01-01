@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
 
-__version__ = '1.4~beta1~km1'
+__version__ = '1.4~beta1~km2'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -34,18 +34,20 @@ def _is_float(value):
 def _convertToFloatOrBoolOrInt(x):
 	"""if x can be converted to float or bool or int, do so and return the result"""
 	try:
-		if float(x) == int(x):
-			return int(x)
+		if isinstance(val, (bool)):
+			nv = bool(val)
+		elif float(x) == int(x):
+			nv = int(x)
 		else:
-			return float(x)
-	except:
+			nv = float(x)
+	except ValueError:
+		nv = str(x)
 		if lower(x) == 'true':
-			return True
+			nv = True 
 		elif lower(x) == 'false':
-			return False
-		else:
-			return x
-
+			nv = False 
+	return nv
+	
 def _splitEscaped(s,spl):
 	"""splits `s` at `spl`, unless `spl` is preceeded by a backslash ("escaped")"""
 	ret = s.replace('\\'+spl,'<>><<>').split(spl)
