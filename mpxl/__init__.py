@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import PIPE,Popen
 from inspect import getargspec
 
-__version__ = '1.4~beta1~km2'
+__version__ = '1.4~beta1~km4'
 
 _LAYERS = ['insettl', 'insettr', 'insetbl', 'insetbr', 'twinx', 'twiny']
 
@@ -106,6 +106,57 @@ class ExcelSelection:
 		self.selectionList 	= []
 		for area in areas:
 			tmp_selectionList = [row + area.value.get()[rowIndex] for rowIndex,row in enumerate(tmp_selectionList)]
+
+		# #
+		# # WORK IN PROGRESS
+		# #
+		# #	- splits list into sections so that multiple 'set_' can be iterated at once
+		# #
+		# #
+
+		# # split the multiple selections up
+		# multiple_selections = []
+		# split_inds			= []
+		# for line in tmp_selectionList:
+		# 	for ind,ent in enumerate(line):
+		# 		if ind != 0:
+		# 			# skip the first entry
+		# 			if str(ent).startswith(('set_','settings','add_','show')):
+		# 				split_inds.append(ind)
+		# # remove duplicates
+		# split_inds = list(set(split_inds))
+		# selection_list_split = []
+		# # now trim the list at the specified indexs
+		# for i,val in enumerate(split_inds):
+		# 	split_selection = []
+		# 	remainder_list	= []
+		# 	new_val 		= 0
+		# 	if i == 0:
+		# 		for line in tmp_selectionList:
+		# 			split , remainder = line[:val] , line[val:]
+		# 			split_selection.append(split)
+		# 			remainder_list.append(remainder)
+		# 			new_val = new_val - val
+		# 	else:
+		# 		for line in tmp_selectionList:
+		# 			vala = val - new_val
+		# 			split , remainder = line[:vala] , line[val:]
+		# 			split_selection.append(split)
+		# 			remainder_list.append(remainder)
+		# 			new_val = new_val - val
+		# 		pass
+		# 	selection_list_split.append(split_selection)
+		# # patched to make software work while i figure out a work-around
+		# tmp_selectionList = selection_list_split[0]
+
+		# #
+		# #
+		# #
+		# # WORK IN PROGRESS
+		# #
+		# #
+		# #
+
 		for i,selection in enumerate(tmp_selectionList):
 			if not str(selection[0]).startswith(_IGNORE_ME):
 				self.selectionList.append(selection)
@@ -478,7 +529,7 @@ class MPLDataSet:
 					else:
 						self.yErr.append(0.0)
 				if self.xErr is not None:
-					if type(self._xErr) == type(0.0):
+					if type(self._xErr[i]) == type(0.0):
 						self.xErr.append(self._xErr[i])
 					else:
 						self.xErr.append(0.0)
